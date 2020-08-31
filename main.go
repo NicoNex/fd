@@ -27,19 +27,19 @@ import (
 )
 
 var (
-	pattern  string
-	print0   bool
-	useRegex bool
-	re       *regexp.Regexp
+	pattern string
+	print0  bool
+	useGlob bool
+	re      *regexp.Regexp
 )
 
 func usage() {
 	fmt.Printf(`fd - Find all files mathing a pattern.
 Fd recursively finds all the files whose names match a pattern provided in input.
 Usage:
-    %s [options] [pattern] [path]
+    %s [options] pattern [path]
 Options:
-    -r    Use a regex instead of the shell file name pattern.
+    -g    Use shell file name pattern instead of regex.
     -0    Separate search results by the null character (instead of newlines). Useful for piping results to 'xargs'.
 `, os.Args[0])
 }
@@ -60,10 +60,10 @@ func exists(fname string) (bool, error) {
 }
 
 func matches(fname string) (bool, error) {
-	if useRegex {
-		return re.MatchString(fname), nil
+	if useGlob {
+		return filepath.Match(pattern, fname)
 	}
-	return filepath.Match(pattern, fname)
+	return re.MatchString(fname), nil
 }
 
 func checkFile(fpath string, info os.FileInfo, err error) error {
@@ -97,7 +97,7 @@ func main() {
 		die(err)
 	}
 
-	if useRegex {
+	if !useGlob {
 		var err error
 		if re, err = regexp.Compile(pattern); err != nil {
 			die(err)
@@ -114,7 +114,7 @@ func main() {
 }
 
 func init() {
-	flag.BoolVar(&useRegex, "r", false, "Use a regex instead of the shell file name pattern.")
+	flag.BoolVar(&useGlob, "g", false, "Use shell file name pattern instead of regex.")
 	flag.BoolVar(&print0, "0", false, "Separate search results by the null character (instead of newlines). Useful for piping results to 'xargs'.")
 	flag.Usage = usage
 	flag.Parse()
